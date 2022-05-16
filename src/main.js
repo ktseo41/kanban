@@ -58,11 +58,18 @@ mounted(() => {
   });
 
   $$("li.addable").forEach((li) => {
+    let isAdding = false;
+
     const addButton = r(`<i>+</i>`, {
       onClick: () => {
+        if (isAdding) return;
+
         const input = r(`<input class="cell-input" type="text">`);
 
+        // https://stackoverflow.com/questions/4793604/how-to-insert-an-element-after-another-element-in-javascript-without-using-a-lib
         addButton.parentNode.insertBefore(input, addButton.nextSibling);
+        input.focus()
+        isAdding = true
       },
     });
     li.prepend(addButton);
@@ -109,6 +116,13 @@ li > div {
   padding: 0.5rem;
 }
 
+input.cell-input {
+  width: 100%;
+  line-height: 1.6;
+}
+
+
+li > input.cell-input,
 li > div:not(:last-child) {
   margin-bottom: 1rem;
 }
