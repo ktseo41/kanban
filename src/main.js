@@ -8,11 +8,28 @@ const mounted = (fn) => {
   });
 };
 
+// https://stackoverflow.com/questions/494143/creating-a-new-dom-element-from-an-html-string-using-built-in-dom-methods-or-pro/35385518#35385518
+const r = (templateString, options = {}) => {
+  const tempElement = document.createElement("template");
+  tempElement.innerHTML = templateString.trim();
+
+  if (Object.keys(options).some((k) => /^on([A-Z][\w]*)$/.exec(k))) {
+    Object.keys(options).forEach((k) => {
+      if (/^on([A-Z][\w]*)$/.exec(k)) {
+        const eventName = k.replace(/^on([A-Z][\w]*)$/, "$1").toLowerCase();
+        tempElement.content.firstChild.addEventListener(eventName, options[k]);
+      }
+    });
+  }
+
+  return tempElement.content.firstChild;
+};
+
 /// template
 const template = `
 <section>
   <ul>
-    <li class="droppable" id="todo">
+    <li class="addable droppable" id="todo">
       <div class="draggable" id="draggable" draggable="true">
         드래그
       </div>
@@ -20,16 +37,15 @@ const template = `
         드랍
       </div>
     </li>
-    <li class="droppable" id="doing"></li>
-    <li class="droppable" id="done"></li>
+    <li class="addable droppable" id="doing"></li>
+    <li class="addable droppable" id="done"></li>
   </ul>
-</section>`
+</section>`;
 
-$('#app').innerHTML = template
+$("#app").innerHTML = template;
 
 // component logics
 mounted(() => {
-  const section = $("section");
   const draggables = $$("[draggable=true]");
 
   draggables.forEach((dr) => {
@@ -39,6 +55,17 @@ mounted(() => {
         return;
       }
     });
+  });
+
+  $$("li.addable").forEach((li) => {
+    const addButton = r(`<i>+</i>`, {
+      onClick: () => {
+        const input = r(`<input class="cell-input" type="text">`);
+
+        addButton.parentNode.insertBefore(input, addButton.nextSibling);
+      },
+    });
+    li.prepend(addButton);
   });
 
   $$("li.droppable").forEach((li) => {
@@ -66,13 +93,14 @@ const style = `section > ul {
 
 section > ul li {
   height: 90vh;
-  padding: 1rem;
+  padding: 0 1rem;
   border: 10px solid rgb(40, 40, 40);
   border-radius: 10px;
   background-color: rgb(167, 173, 199);
   list-style: none;
 }
 
+input.cell-input,
 li > div {
   border: 8px solid rgb(40, 40, 40);
   border-radius: 8px;
@@ -83,7 +111,19 @@ li > div {
 
 li > div:not(:last-child) {
   margin-bottom: 1rem;
-}`
+}
+
+li i {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.5rem 0;
+  font-size: 2rem;
+  font-weight: bold;
+  font-style: normal;
+  line-height: 1;
+  cursor: pointer;
+}
+`;
 
 const styletag = document.createElement('style')
 styletag.innerHTML = style
