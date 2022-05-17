@@ -14,6 +14,7 @@ const r = (templateString, options = {}) => {
   tempElement.innerHTML = templateString.trim();
 
   if (Object.keys(options).some((k) => /^on([A-Z][\w]*)$/.exec(k))) {
+    // event bind
     Object.keys(options).forEach((k) => {
       if (/^on([A-Z][\w]*)$/.exec(k)) {
         const eventName = k.replace(/^on([A-Z][\w]*)$/, "$1").toLowerCase();
@@ -64,12 +65,56 @@ mounted(() => {
       onClick: () => {
         if (isAdding) return;
 
-        const input = r(`<input class="cell-input" type="text">`);
+        const input = r(
+          `<div class="new-cell">
+            <input class="cell-input" type="text">
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px;">
+              <img class="add" width="25" height="25" src="src/assets/check.svg">
+              <img class="cancel" width="25" height="25" src="src/assets/times.svg">
+            </div>
+          </div>`,
+          {
+            onClick: (e) => {
+              if (e.target.tagName.toLowerCase() === "img") {
+                e.preventDefault();
+
+                if (e.target.classList.contains("add")) {
+                  // TODO: 더 나은 방법 찾기..
+                  const currentInputValue =
+                    e.target.parentElement.parentElement.querySelector(
+                      "input.cell-input"
+                    ).value;
+
+                  if (!currentInputValue) return;
+
+                  const newCell = r(
+                    `<div class="draggable" id="${Math.random()
+                      .toString(36)
+                      .substring(2)}"
+                      draggable="true"></div>`
+                  );
+
+                  newCell.innerText = currentInputValue;
+
+                  // .new-cell의 sibling으로 추가
+                  li.querySelector(".new-cell").parentElement.insertBefore(
+                    newCell,
+                    li.querySelector(".new-cell")
+                  );
+                  li.querySelector(".new-cell").remove();
+                }
+
+                if (e.target.classList.contains("cancel")) {
+                }
+              }
+            },
+          }
+        );
 
         // https://stackoverflow.com/questions/4793604/how-to-insert-an-element-after-another-element-in-javascript-without-using-a-lib
         addButton.parentNode.insertBefore(input, addButton.nextSibling);
-        input.focus()
-        isAdding = true
+        input.focus();
+        isAdding = true;
       },
     });
     li.prepend(addButton);
@@ -107,8 +152,12 @@ section > ul li {
   list-style: none;
 }
 
+.new-cell img {
+  cursor: pointer;
+}
+
 input.cell-input,
-li > div {
+li > div.draggable {
   border: 8px solid rgb(40, 40, 40);
   border-radius: 8px;
   font-size: 18px;
@@ -120,7 +169,6 @@ input.cell-input {
   width: 100%;
   line-height: 1.6;
 }
-
 
 li > input.cell-input,
 li > div:not(:last-child) {
