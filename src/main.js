@@ -9,21 +9,30 @@ const mounted = (fn) => {
 };
 
 // https://stackoverflow.com/questions/494143/creating-a-new-dom-element-from-an-html-string-using-built-in-dom-methods-or-pro/35385518#35385518
-const r = (templateString, options = {}) => {
+const r = (renderOptions) => {
+  const {
+    template = "",
+    events = {},
+    styles = {},
+    children = [],
+  } = renderOptions;
+
   const tempElement = document.createElement("template");
-  tempElement.innerHTML = templateString.trim();
+  tempElement.innerHTML = template.trim();
 
-  if (Object.keys(options).some((k) => /^on([A-Z][\w]*)$/.exec(k))) {
-    // event bind
-    Object.keys(options).forEach((k) => {
-      if (/^on([A-Z][\w]*)$/.exec(k)) {
-        const eventName = k.replace(/^on([A-Z][\w]*)$/, "$1").toLowerCase();
-        tempElement.content.firstChild.addEventListener(eventName, options[k]);
-      }
-    });
-  }
+  const currentElement = tempElement.content.firstChild;
 
-  return tempElement.content.firstChild;
+  Object.keys(events).forEach((eventName) => {
+    currentElement.addEventListener(eventName, events[eventName]);
+  });
+
+  children.forEach((child) => {
+    const childElement = r(child);
+
+    currentElement.appendChild(childElement);
+  });
+
+  return currentElement;
 };
 
 /// template
@@ -61,62 +70,70 @@ mounted(() => {
   $$("li.addable").forEach((li) => {
     let isAdding = false;
 
-    const addButton = r(`<i>+</i>`, {
-      onClick: () => {
-        if (isAdding) return;
+    const addButton = r({
+      template: "<i>+</i>",
+      events: {
+        click: () => {
+          if (isAdding) return;
 
-        const input = r(
-          `<div class="new-cell">
-            <input class="cell-input" type="text">
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px;">
-              <img class="add" width="25" height="25" src="src/assets/check.svg">
-              <img class="cancel" width="25" height="25" src="src/assets/times.svg">
-            </div>
-          </div>`,
-          {
-            onClick: (e) => {
-              if (e.target.tagName.toLowerCase() === "img") {
-                e.preventDefault();
+          const newInputCell = r({
+            template: `
+            <div class="new-cell">
+              <input class="cell-input" type="text">
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px;">
+                <img class="add" width="25" height="25" src="src/assets/check.svg">
+                <img class="cancel" width="25" height="25" src="src/assets/times.svg">
+              </div>
+            </div>`,
+            events: {
+              click: (e) => {
+                if (e.target.tagName.toLowerCase() === "img") {
+                  e.preventDefault();
 
-                if (e.target.classList.contains("add")) {
-                  // TODO: 더 나은 방법 찾기..
-                  const currentInputValue =
-                    e.target.parentElement.parentElement.querySelector(
-                      "input.cell-input"
-                    ).value;
+                  if (e.target.classList.contains("add")) {
+                    // TODO: 더 나은 방법 찾기..
+                    const currentInputValue =
+                      e.target.parentElement.parentElement.querySelector(
+                        "input.cell-input"
+                      ).value;
 
-                  if (!currentInputValue) return;
+                    if (!currentInputValue) return;
 
-                  const newCell = r(
-                    `<div class="draggable" id="${Math.random()
-                      .toString(36)
-                      .substring(2)}"
-                      draggable="true"></div>`
-                  );
+                    const newCell = r({
+                      template: `<div class="draggable" id="${Math.random()
+                        .toString(36)
+                        .substring(2)}"
+                      draggable="true"></div>`,
+                    });
 
-                  newCell.innerText = currentInputValue;
+                    newCell.innerText = currentInputValue;
 
-                  // .new-cell의 sibling으로 추가
-                  li.querySelector(".new-cell").parentElement.insertBefore(
-                    newCell,
-                    li.querySelector(".new-cell")
-                  );
-                  li.querySelector(".new-cell").remove();
+                    // .new-cell의 sibling으로 추가
+                    li.querySelector(".new-cell").parentElement.insertBefore(
+                      newCell,
+                      li.querySelector(".new-cell")
+                    );
+                    li.querySelector(".new-cell").remove();
+                  }
+
+                  if (e.target.classList.contains("cancel")) {
+                  }
                 }
-
-                if (e.target.classList.contains("cancel")) {
-                }
-              }
+              },
             },
-          }
-        );
+          });
 
-        // https://stackoverflow.com/questions/4793604/how-to-insert-an-element-after-another-element-in-javascript-without-using-a-lib
-        addButton.parentNode.insertBefore(input, addButton.nextSibling);
-        input.focus();
-        isAdding = true;
+          // https://stackoverflow.com/questions/4793604/how-to-insert-an-element-after-another-element-in-javascript-without-using-a-lib
+          addButton.parentNode.insertBefore(
+            newInputCell,
+            addButton.nextSibling
+          );
+          newInputCell.focus();
+          isAdding = true;
+        },
       },
     });
+
     li.prepend(addButton);
   });
 
