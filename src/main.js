@@ -17,6 +17,9 @@ const randomId = () =>
     .filter((v) => !/[\d]/.exec(v))
     .join("");
 
+const camelToKebab = (str) =>
+  str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+
 const makeDefaultProxyHandler = (fn) => ({
   set: (target, key, value) => {
     target[key] = value;
@@ -49,6 +52,26 @@ const r = (renderOptions) => {
     currentElement.setAttribute(attrName, attrs[attrName]);
   });
 
+  if (Object.keys(styles).length && !(currentElement instanceof Text)) {
+    const styleClassName = randomId();
+    currentElement.classList.add(styleClassName);
+
+    const styleElement = document.createElement("style");
+
+    styleElement.innerHTML = Object.entries(styles).reduce(
+      (acc, [styleName, styleValue], idx, arr) => {
+        if (arr.length - 1 === idx) {
+          return `${acc}\n ${camelToKebab(styleName)}: ${styleValue};\n}`;
+        }
+
+        return `${acc}\n ${camelToKebab(styleName)}: ${styleValue};`;
+      },
+      `.${styleClassName} {`
+    );
+
+    document.head.appendChild(styleElement);
+  }
+
   children.forEach((child) => {
     if (!child) return;
 
@@ -76,12 +99,15 @@ const model = {
           text: "랜덤 id",
         },
       ],
+      isAddingNewCell: false,
     },
     {
       name: "doing",
+      isAddingNewCell: false,
     },
     {
       name: "done",
+      isAddingNewCell: false,
     },
   ],
 };
@@ -97,15 +123,96 @@ function renderFromKanbanModel(model) {
       children: [
         {
           template: "<ul></ul>",
+          styles: {
+            display: "grid",
+            alignItems: "center",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            columnGap: "1rem",
+            height: "100vh",
+            padding: "0 2rem",
+          },
           children: columns.map((column) => ({
             template: "<li></li>",
             attrs: {
               class: "droppable",
               id: column.name,
             },
+            styles: {
+              height: "90vh",
+              padding: "0 1rem",
+              border: "10px solid rgb(40, 40, 40)",
+              borderRadius: "10px",
+              backgroundColor: "rgb(167, 173, 199)",
+              listStyle: "none",
+            },
             children: [
               {
                 template: "<i>+</i>",
+                styles: {
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  margin: "0.5rem 0",
+                  fontSize: "2rem",
+                  fontWeight: "bold",
+                  fontStyle: "normal",
+                  lineHeight: "1",
+                  cursor: "pointer",
+                },
+                events: {
+                  click: () => {
+                    if (column.isAddingNewCell) return;
+
+                    column.isAddingNewCell = true;
+                  },
+                },
+              },
+              {
+                template: "<div></div>",
+                children: [
+                  {
+                    template: "<input></input>",
+                    attrs: {
+                      type: "text",
+                    },
+                    styles: {
+                      width: "100%",
+                      padding: "0.5rem",
+                      border: "8px solid rgb(40, 40, 40)",
+                      borderRadius: "8px",
+                      lineHeight: "1.6",
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                    },
+                  },
+                  {
+                    template: "<div></div>",
+                    styles: {
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: "8px",
+                      marginTop: "5px",
+                      marginBottom: "1rem",
+                    },
+                    children: [
+                      {
+                        template: "<img>",
+                        attrs: {
+                          width: "25",
+                          height: "25",
+                          src: "src/assets/check.svg",
+                        },
+                      },
+                      {
+                        template: "<img>",
+                        attrs: {
+                          width: "25",
+                          height: "25",
+                          src: "src/assets/times.svg",
+                        },
+                      },
+                    ],
+                  },
+                ],
               },
               ...(column.items?.map((item) => ({
                 template: "<div></div>",
@@ -113,6 +220,14 @@ function renderFromKanbanModel(model) {
                   class: "draggable",
                   id: item.id || randomId(),
                   draggable: true,
+                },
+                styles: {
+                  padding: "0.5rem",
+                  marginBottom: "1rem",
+                  border: "8px solid rgb(40, 40, 40)",
+                  borderRadius: "8px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
                 },
                 children: [{ template: item.text }],
               })) || []),
@@ -224,62 +339,3 @@ init(() => {
   //   });
   // });
 });
-
-/// styles
-
-const style = `section > ul {
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr 1fr 1fr;
-  column-gap: 1rem;
-  height: 100vh;
-  padding: 0 2rem;
-}
-
-section > ul li {
-  height: 90vh;
-  padding: 0 1rem;
-  border: 10px solid rgb(40, 40, 40);
-  border-radius: 10px;
-  background-color: rgb(167, 173, 199);
-  list-style: none;
-}
-
-.new-cell img {
-  cursor: pointer;
-}
-
-input.cell-input,
-li > div.draggable {
-  border: 8px solid rgb(40, 40, 40);
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  padding: 0.5rem;
-}
-
-input.cell-input {
-  width: 100%;
-  line-height: 1.6;
-}
-
-li > input.cell-input,
-li > div:not(:last-child) {
-  margin-bottom: 1rem;
-}
-
-li i {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0.5rem 0;
-  font-size: 2rem;
-  font-weight: bold;
-  font-style: normal;
-  line-height: 1;
-  cursor: pointer;
-}
-`;
-
-const styletag = document.createElement('style')
-styletag.innerHTML = style
-$('head').appendChild(styletag)
