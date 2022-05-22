@@ -160,14 +160,17 @@ function renderFromKanbanModel(model) {
                 },
                 events: {
                   click: () => {
-                    if (column.isAddingNewCell) return;
-
-                    column.isAddingNewCell = true;
+                    if (!column.isAddingNewCell) {
+                      column.isAddingNewCell = true;
+                    }
                   },
                 },
               },
               {
                 template: "<div></div>",
+                styles: {
+                  display: !column.isAddingNewCell ? "none" : "block",
+                },
                 children: [
                   {
                     template: "<input></input>",
@@ -201,6 +204,9 @@ function renderFromKanbanModel(model) {
                           height: "25",
                           src: "src/assets/check.svg",
                         },
+                        styles: {
+                          cursor: "pointer",
+                        },
                       },
                       {
                         template: "<img>",
@@ -208,6 +214,9 @@ function renderFromKanbanModel(model) {
                           width: "25",
                           height: "25",
                           src: "src/assets/times.svg",
+                        },
+                        styles: {
+                          cursor: "pointer",
                         },
                       },
                     ],
