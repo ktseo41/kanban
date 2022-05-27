@@ -221,6 +221,11 @@ function renderFromKanbanModel() {
                           height: "25",
                           src: "src/assets/times.svg",
                         },
+                        events: {
+                          click: () => {
+                            column.isAddingNewCell = false;
+                          },
+                        },
                         styles: {
                           cursor: "pointer",
                         },
@@ -303,10 +308,40 @@ init(() => {
     },
     set: (target, key, value) => {
       console.log("from columns setter, key", key, value);
-      target[key] = value;
+      if (typeof value === "object") {
+        target[key] = new Proxy(value, {
+          get: (target, prop) => {
+            console.log("from items getter, prop", prop);
+            return target[prop];
+          },
+          set: (target, key, value) => {
+            console.log("from items setter, key", key, value);
+            target[key] = value;
+            renderFromKanbanModel();
+            return true;
+          },
+        });
+      } else {
+        target[key] = value;
+      }
       renderFromKanbanModel();
       return true;
     },
+  });
+
+  Object.keys(_.columns).forEach((key) => {
+    _.columns[key] = new Proxy(_.columns[key], {
+      get: (target, prop) => {
+        console.log("from columns[key] getter, prop", prop);
+        return target[prop];
+      },
+      set: (target, key, value) => {
+        console.log("from columns[key] setter, key", key, value);
+        target[key] = value;
+        renderFromKanbanModel();
+        return true;
+      },
+    });
   });
 
   _.columns.push({ name: "todo4" });
