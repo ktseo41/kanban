@@ -112,7 +112,13 @@ const model = {
   ],
 };
 
-function renderFromKanbanModel(model) {
+function deleteRoot() {
+  $("section")?.remove();
+}
+
+function renderFromKanbanModel() {
+  deleteRoot();
+
   const { columns } = model;
 
   const fragment = new DocumentFragment();
@@ -126,12 +132,12 @@ function renderFromKanbanModel(model) {
           styles: {
             display: "grid",
             alignItems: "center",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: `repeat(${columns.length}, 1fr)`,
             columnGap: "1rem",
             height: "100vh",
             padding: "0 2rem",
           },
-          children: columns.map((column) => ({
+          children: columns?.map((column) => ({
             template: "<li></li>",
             attrs: {
               class: "droppable",
@@ -276,6 +282,35 @@ function bindDragEvents(dom) {
 
 init(() => {
   renderFromKanbanModel(model);
+
+  const _ = new Proxy(model, {
+    get: (target, prop) => {
+      console.log("from model getter, prop", prop);
+      return target[prop];
+    },
+    set: (target, key, value) => {
+      target[key] = value;
+      console.log("from model setter, key", key);
+      renderFromKanbanModel();
+      return true;
+    },
+  });
+
+  _.columns = new Proxy(_.columns, {
+    get: (target, prop) => {
+      console.log("from columns getter, prop", prop);
+      return target[prop];
+    },
+    set: (target, key, value) => {
+      console.log("from columns setter, key", key, value);
+      target[key] = value;
+      renderFromKanbanModel();
+      return true;
+    },
+  });
+
+  _.columns.push({ name: "todo4" });
+
   bindDragEvents($("#app"));
 
   // $$("li.addable").forEach((li) => {
